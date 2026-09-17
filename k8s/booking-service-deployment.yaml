@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
         - name: booking-service
-          image: ticket-booking-service:latest
-          imagePullPolicy: IfNotPresent
+          image: 861097501014.dkr.ecr.us-east-1.amazonaws.com/ticket-booking-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8082
           env:
@@ -39,3 +39,22 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: EVENT_SERVICE_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 10

@@ -1,33 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: 
+metadata:
   name: auth-service
-
 spec:
   replicas: 1
   selector:
-    matchLabels: 
+    matchLabels:
       app: auth-service
   template:
     metadata:
       labels:
         app: auth-service
-    
     spec:
       containers:
         - name: auth-service
-          image: ticket-auth-service:latest
-          imagePullPolicy: IfNotPresent
+          image: 861097501014.dkr.ecr.us-east-1.amazonaws.com/ticket-auth-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8083
           env:
             - name: DB_URL
               valueFrom:
                 configMapKeyRef:
-                  name: app-config  
+                  name: app-config
                   key: DB_URL
             - name: DB_USERNAME
-              valueFrom: 
+              valueFrom:
                 configMapKeyRef:
                   name: app-config
                   key: DB_USERNAME
@@ -35,4 +33,23 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: app-secret
-                  key: DB_PASSWORD       
+                  key: DB_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 20
+            periodSeconds: 10

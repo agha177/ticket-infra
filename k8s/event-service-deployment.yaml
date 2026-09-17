@@ -2,13 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: event-service
-
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: event-service
-
   template:
     metadata:
       labels:
@@ -16,23 +14,42 @@ spec:
     spec:
       containers:
         - name: event-service
-          image: ticket-event-service:latest
-          imagePullPolicy: IfNotPresent
+          image: 861097501014.dkr.ecr.us-east-1.amazonaws.com/ticket-event-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
           env:
             - name: DB_URL
               valueFrom:
-                configMapKeyRef: 
+                configMapKeyRef:
                   name: app-config
                   key: DB_URL
             - name: DB_USERNAME
               valueFrom:
                 configMapKeyRef:
                   name: app-config
-                  key: DB_USERNAME      
+                  key: DB_USERNAME
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: app-secret
                   key: DB_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
