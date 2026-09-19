@@ -1,0 +1,70 @@
+---
+- name: Install DevOps tooling on Jenkins server
+  hosts: jenkins_server
+  become: true
+
+  tasks:
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Check if kubectl is already installed
+      stat:
+        path: /usr/local/bin/kubectl
+      register: kubectl_bin
+
+    - name: Download kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+      when: not kubectl_bin.stat.exists
+
+    - name: Check if AWS CLI is already installed
+      stat:
+        path: /usr/local/bin/aws
+      register: aws_cli_bin
+
+    - name: Download AWS CLI installer
+      get_url:
+        url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+        dest: /tmp/awscliv2.zip
+      when: not aws_cli_bin.stat.exists
+
+    - name: Install unzip (required for AWS CLI installer)
+      apt:
+        name: unzip
+        state: present
+      when: not aws_cli_bin.stat.exists
+
+    - name: Unzip AWS CLI installer
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: true
+      when: not aws_cli_bin.stat.exists
+
+    - name: Install AWS CLI
+      command: /tmp/aws/install
+      when: not aws_cli_bin.stat.exists
+
+    - name: Check if eksctl is already installed
+      stat:
+        path: /usr/local/bin/eksctl
+      register: eksctl_bin
+
+    - name: Download and extract eksctl
+      shell: |
+        curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+        mv /tmp/eksctl /usr/local/bin
+      when: not eksctl_bin.stat.exists
+
+    - name: Check if Helm is already installed
+      stat:
+        path: /usr/local/bin/helm
+      register: helm_bin
+
+    - name: Install Helm
+      shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      when: not helm_bin.stat.exists

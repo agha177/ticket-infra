@@ -1,0 +1,66 @@
+---
+- name: Set up Jenkins server
+  hosts: jenkins_server
+  become: true
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+
+    - name: Install OpenJDK 21 (full JDK, not just JRE)
+      apt:
+        name: openjdk-21-jdk-headless
+        state: present
+
+    - name: Ensure keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Jenkins GPG key
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: '0644'
+
+    - name: Check if Jenkins repo is already configured
+      stat:
+        path: /etc/apt/sources.list.d/jenkins.list
+      register: jenkins_repo_file
+
+    - name: Add Jenkins repository (only if not already present)
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+      when: not jenkins_repo_file.stat.exists
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: true
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Add jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: true
+
+    - name: Ensure Jenkins service is enabled and running
+      systemd:
+        name: jenkins
+        enabled: true
+        state: started
+
+    - name: Restart Jenkins to apply docker group membership
+      systemd:
+        name: jenkins
+        state: restarted
